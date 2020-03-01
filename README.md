@@ -1,3 +1,7 @@
+jks7592: I was using this a lot to learn about radar processing and wound up updating a few small portions of the code because I use python 3.
+
+~-----------~
+
 # RITSAR
 Synthetic Aperture Radar (SAR) Image Processing Toolbox for Python
 

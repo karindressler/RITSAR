@@ -22,7 +22,7 @@ import numpy as np
 from ritsar import phsTools
 from ritsar import phsRead
 from ritsar import imgTools
-'''
+
 #simulated DSBP demo
 ##############################################################################
 #Create platform dictionary
@@ -104,6 +104,7 @@ plt.title('Digital Spotlight Backprojection')
 imgTools.imshow(img_DSBP, dB_scale = [-25,0], extent = extent)
 plt.xlabel('meters'); plt.ylabel('meters')
 plt.tight_layout()
+'''
 '''
 #DIRSIG DSBP demo
 ###############################################################################
