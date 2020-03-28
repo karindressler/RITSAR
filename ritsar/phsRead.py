@@ -2,14 +2,52 @@
 import numpy as np
 from numpy import pi
 from numpy.linalg import norm
-from scipy.io import loadmat
 from scipy.stats import linregress
 from fnmatch import fnmatch
 import os
-import sys
+import scipy.io as sio 
 import xml.etree.ElementTree as ET
 
-def AFRL(directory, pol, start_az, n_az=3):
+#%%
+#https://stackoverflow.com/questions/7008608/scipy-io-loadmat-nested-structures-i-e-dictionaries
+#User: mergen Date: 17 Jan 2012 Accessed: April 2019.
+#import scipy.io as sio # in import section already
+def mergenloadmat(filename):
+    '''
+    this function should be called instead of direct spio.loadmat
+    as it cures the problem of not properly recovering python dictionaries
+    from mat files. It calls the function check keys to cure all entries
+    which are still mat-objects
+    '''
+    data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
+    return _check_keys(data)
+
+def _check_keys(dict):
+    '''
+    checks if entries in dictionary are mat-objects. If yes
+    todict is called to change them to nested dictionaries
+    '''
+    for key in dict:
+        if isinstance(dict[key], sio.matlab.mio5_params.mat_struct):
+            dict[key] = _todict(dict[key])
+    return dict        
+
+def _todict(matobj):
+    '''
+    A recursive function which constructs from matobjects nested dictionaries
+    '''
+    dict = {}
+    for strg in matobj._fieldnames:
+        elem = matobj.__dict__[strg]
+        if isinstance(elem, sio.matlab.mio5_params.mat_struct):
+            dict[strg] = _todict(elem)
+        else:
+            dict[strg] = elem
+    return dict
+
+#%%
+
+def AFRL(directory, start_az, pol=False, n_az=3):
 ##############################################################################
 #                                                                            #
 #  This function reads in the AFRL *.mat files from the user supplied        #
@@ -18,67 +56,61 @@ def AFRL(directory, pol, start_az, n_az=3):
 #                                                                            #
 ##############################################################################
     
-    #Check Python version
-    version = sys.version_info   
-    
     #Get filenames
-    walker = os.walk(directory+'/'+pol)
-    if version.major < 3:
-        w = walker.next()
-    else:
+    if pol:
+        walker = os.walk(directory+'/'+pol)
         w = walker.__next__()
-    prefix = '/'+pol+'/'+w[2][0][0:19]
-    az_str = []
-    fnames = []
-    az = np.arange(start_az, start_az+n_az)
-    [az_str.append(str('%03d_'%a))      for a in az]
-    [fnames.append(directory+prefix+a+pol+'.mat') for a in az_str]
-    
+        prefix = '/'+pol+'/'+w[2][0][0:19]
+        az_str = []
+        fnames = []
+        az = np.arange(start_az, start_az+n_az)
+        [az_str.append(str('%03d_'%a))      for a in az]
+        [fnames.append(directory+prefix+a+pol+'.mat') for a in az_str]
+    else: # non-polarized data from wide angle SAR dataset
+        walker = os.walk(directory+'/')
+        w = walker.__next__()
+        prefix='/' + w[2][0][0:19]
+        az_str = []
+        fnames = []
+        az = np.arange(start_az, start_az+n_az)
+        [az_str.append(str('%04d'%a))      for a in az]
+        [fnames.append(directory+prefix+a+'.mat') for a in az_str]
+
     #Grab n_az phase histories
     phs = []; platform = []
     for fname in fnames:
         #Convert MATLAB structure to Python dictionary
-        MATdata = loadmat(fname)['data'][0][0]
-        
-        data =\
-        {
-        'fp'    :   MATdata[0],
-        'freq'  :   MATdata[1][:,0],
-        'x'     :   MATdata[2].T,
-        'y'     :   MATdata[3].T,
-        'z'     :   MATdata[4].T,
-        'r0'    :   MATdata[5][0],
-        'th'    :   MATdata[6][0],
-        'phi'   :   MATdata[7][0],
-        }
-        
+        data=mergenloadmat(fname)['data']
+
         #Define phase history
-        phs_tmp     = data['fp'].T
+        keys=data.keys()
+        key='fp' if 'fp' in keys else 'fq' #Used for compatibility
+        phs_tmp     = data[key].T
         phs.append(phs_tmp)
-        
+
         #Transform data to be compatible with ritsar
-        c           = 299792458.0
+        c           = np.float64(299792458.0)
         nsamples    = int(phs_tmp.shape[1])
         npulses     = int(phs_tmp.shape[0])
-        freq        = data['freq']
-        pos         = np.hstack((data['x'], data['y'], data['z']))
+        freq        = np.float64(data['freq'])
+        pos         = np.vstack((data['x'], data['y'], data['z'])).T
         k_r         = 4*pi*freq/c
-        B_IF        = data['freq'].max()-data['freq'].min()
+        B_IF        = freq.max()-freq.min()
         delta_r     = c/(2*B_IF)
         delta_t     = 1.0/B_IF
         t           = np.linspace(-nsamples/2, nsamples/2, nsamples)*delta_t
-        
+
         chirprate, f_0, r, p, s\
                     = linregress(t, freq)
-                    
+
         #Vector to scene center at synthetic aperture center
         if np.mod(npulses,2)>0:
-            R_c = pos[npulses//2] #This is a test
+            R_c = pos[npulses//2]
         else:
             R_c = np.mean(
                     pos[npulses//2-1:npulses//2+1],
                     axis = 0)
-        
+
         #Save values to dictionary for export
         platform_tmp = \
         {
@@ -93,36 +125,54 @@ def AFRL(directory, pol, start_az, n_az=3):
             'R_c'       :   R_c,
             't'         :   t,
             'k_r'       :   k_r,
+            'r0'        :   data['r0'],
+            'th'        :   data['th'],
+            'phi'       :   data['phi']
         }
         platform.append(platform_tmp)
-    
+
     #Stack data from different azimuth files
     phs = np.vstack(phs)
     npulses = int(phs.shape[0])
     
+    
+    #Stack position, per pulse reference range, theta(degrees), and depression angle
     pos = platform[0]['pos']
+    r0  = platform[0]['r0']
+    th  = platform[0]['th']
+    phi = platform[0]['phi']
     for i in range(1, n_az):
         pos = np.vstack((pos, platform[i]['pos']))
-                       
+        r0  = np.append(r0,platform[i]['r0'])
+        th  = np.append(th,platform[i]['th'])
+        phi = np.append(phi,platform[i]['phi'])
+
     if np.mod(npulses,2)>0:
         R_c = pos[npulses//2]
     else:
         R_c = np.mean(
                 pos[npulses//2-1:npulses//2+1],
                 axis = 0)
-                       
+
     #Replace Dictionary values
     platform = platform_tmp
-    platform['npulses'] =   npulses
-    platform['pos']     =   pos
-    platform['R_c']     =   R_c
+    platform_update=\
+    {
+            'npulses'    :   npulses,
+            'pos'        :   pos,
+            'R_c'        :   R_c,
+            'r0'         :   r0,
+            'th'         :   th,
+            'phi'        :   phi,
+    }
+    platform.update(platform_update)
     
     #Synthetic aperture length
     L = norm(pos[-1]-pos[0])
 
     #Add k_y
     platform['k_y'] = np.linspace(-npulses/2,npulses/2,npulses)*2*pi/L
-    
+
     return(phs, platform)
     
 def Sandia(directory):
