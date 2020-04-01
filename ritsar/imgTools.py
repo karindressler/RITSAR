@@ -10,6 +10,269 @@ from . import phsTools
 from scipy.interpolate import interp1d
 import multiprocessing as mp
 
+    
+def img_plane_dict(platform, n_hat = np.array([0,0,1]), numPixels=False, \
+                   length=False, upsample=False, res_factor=False,
+                   aspect=False, checkme=False, force_xy=False):
+    '''
+    This function defines the image plane parameters.
+    
+    Parameters
+    ----------
+    platform  :  dict    
+        The platform dictionary. Must include keys 'nsamples',
+        'npulses', 'freq', 'R_c', 'pos' and if keyword `res_factor` is
+        used 'delta_r'    
+    n_hat  :  array, default=numpy.array([0,0,1])    
+        Normal vector of the plane in which you wish to form the image    
+    numPixels  :  int, array, tuple, or list. optional
+        Allows the user to specify the number of pixels of the output image in
+        range(nu) and cross range(nv) directions. int will result in a square.    
+    length  :  int, array, tuple, or list. optional    
+        Size (m) of scene to form image in range and cross range 
+        directions (determined by center of aperture) about scene center.    
+    upsample  :  bool, optional    
+        Autodetermines image size by rounding nsamples and npulses up 
+        to the nearest power of 2. Overridden by numPixels    
+    res_factor  :  float, optional    
+        A res_factor of 1 yields a (u,v) image plane whose pixels are 
+        sized at the theoretical resolution limit of the system derived
+        using delta_r which in turn was derived using the bandwidth.
+        Using this or aspect will override `length`    
+    aspect  :  float, optional    
+        Using this will force a given aspect (dv/du) on the output image
+        and will select the lower resolution (larger) between du and dv 
+        at the given aspect. This will override length    
+    checkme  :  bool, optional    
+        Prints theoretical maximum scene size and resolution limits.
+        Then prints chosen size and resolution limits.    
+    force_xy  :  bool, optional    
+        Used for comparison with matlab code. Forces u_vec=[1,0,0] and
+        v_vec=[0,1,0]. Note that this overrides n_hat    
+            
+    Returns
+    ----------
+    output  :  dict    
+        Contains keys: 'n_hat', 'u_hat', 'v_hat', 'du', 'dv', 'u', 'v', 'k_u',
+        'k_v', and 'pixel_locs'. 'du'/'dv' (m) represents the spacing along 
+        'u' and 'v' while 'u_hat' and 'v_hat' give their direction.'k_u' and 
+        'k_v' (1/m) represent frequencies on the image plane. 'pixel_locs' is 
+        a 3x(nu,nv) array of xyz coordinates to use for sampling locations.    
+        
+    '''
+    c           =   299792458.0
+    nsamples = platform['nsamples']
+    npulses  = platform['npulses']
+    freq     = platform['freq']
+    
+    if freq.ndim ==1:
+        freq=freq[None,:]
+    deltaF=freq[0,2]-freq[0,1]
+    
+    #Import relevant platform parameters
+    R_c = platform['R_c']    
+    def isany(x):
+        isin=isinstance
+        return np.any([isin(x,list),isin(x,np.ndarray),isin(x,tuple)])
+
+    #Define image plane parameters
+    if isany(numPixels):
+        nu,nv=numPixels[0],numPixels[-1]
+    elif np.all([isinstance(numPixels,int),numPixels>0]):
+        nu,nv=numPixels,numPixels
+    elif np.all([not numPixels,upsample]):
+        nu= 2**int(np.log2(nsamples)+bool(np.mod(np.log2(nsamples),1)))
+        nv= 2**int(np.log2(npulses)+bool(np.mod(np.log2(npulses),1)))
+    else:
+        nu,nv= nsamples,npulses
+    
+    #Determine scene bounds
+    # Determine the azimuth angles of the image pulses (radians)
+    pos=platform['pos']
+    AntAz = np.unwrap(np.arctan2(pos[:,1],pos[:,0]))
+
+    # Determine the average azimuth angle step size (radians)
+    deltaAz = np.abs(np.mean(np.diff(AntAz)))
+
+    # Determine the total azimuth angle of the aperture (radians)
+    totalAz = np.max(AntAz) - np.min(AntAz)
+
+    # Determine the maximum scene size of the image (m)
+    maxWr = c/(2*deltaF)
+    maxWx = c/(2*deltaAz*np.mean(freq[0,:]))
+    
+    if isany(length):
+        ulength,vlength=length[0],length[-1]
+    elif np.all([isinstance(length,int),length>0]):
+        ulength,vlength=length,length
+    else:
+        ulength,vlength=1.22*maxWr,1.22*maxWx #1.22 for Airy disk limit, will alias
+    
+    #Build Pixel Grid
+    if res_factor: #included for compatibility
+        #Define resolution.  This should be less than the system resolution limits
+        res_factor=res_factor if res_factor else 1.0
+        du = platform['delta_r']*res_factor*nsamples/nu
+        aspect=aspect if aspect else 1.0
+        dv = aspect*du
+        #Define range and cross-range locations
+        u = np.arange(-nu/2, nu/2)*du
+        v = np.arange(-nv/2, nv/2)*dv
+        ulength,vlength=np.abs(u[-1]-u[0]),np.abs(v[-1]-v[0])
+    elif np.all([not res_factor, aspect]):
+        ubound = 0.5*ulength*np.array([-1, 1]);
+        vbound = 0.5*vlength*np.array([-1, 1]);
+        du=np.max([ulength/nu,vlength/(aspect*nv)])
+        dv=aspect*du
+        #Define range and cross-range locations
+        u = np.arange(-nu/2, nu/2)*du
+        v = np.arange(-nv/2, nv/2)*dv
+        ulength,vlength=np.abs(u[-1]-u[0]),np.abs(v[-1]-v[0])
+    else:
+        ubound = 0.5*ulength*np.array([-1, 1]);
+        vbound = 0.5*vlength*np.array([-1, 1]);
+        u = np.linspace(ubound[0],ubound[1],nu);
+        v = np.linspace(vbound[0],vbound[1],nv);  
+        du=u[2]-u[1]
+        dv=v[2]-v[1]
+
+    if checkme:
+        # Determine the resolution of the image (m)
+        dr = c/(2*deltaF*nsamples);
+        dx = c/(2*totalAz*np.mean(freq[0,:]));
+        
+        # Display maximum scene size and resolution
+        print('Maximum Scene Size:  %.4f m range, %.4f m cross-range'%(maxWr,maxWx))
+        print('Max Resolution:  %.4fm range, %.4f m cross-range'%(dr,dx))
+        print('Chosen Size: %.4f m range %.4f m cross-range' %(ulength,vlength))
+        print('Chosen Sample Spacing: %.4f m range, %.4f m cross-range'%(du,dv))
+
+    #Derive image plane spatial frequencies
+    k_u = 2*pi*np.linspace(-1.0/(2*du), 1.0/(2*du), nu)
+    k_v = 2*pi*np.linspace(-1.0/(2*dv), 1.0/(2*dv), nv)
+    
+    if force_xy:
+        u_hat=np.array([1,0,0])
+        v_hat=np.array([0,1,0])
+    else:
+        #Derive representation of u_hat and v_hat in (x,y,z) space
+        v_hat = np.cross(n_hat, R_c)/norm(np.cross(n_hat, R_c))
+        u_hat = np.cross(v_hat, n_hat)/norm(np.cross(v_hat, n_hat))
+
+    #Represent u and v in (x,y,z)
+    [uu,vv] = np.meshgrid(u,v)
+    uu = uu.flatten(); vv = vv.flatten()
+
+    A = np.asmatrix(np.hstack((
+        np.array([u_hat]).T, np.array([v_hat]).T 
+            ))) 
+    b = np.asmatrix(np.vstack((uu,vv)))
+    pixel_locs = np.asarray(A*b)
+
+    #Construct dictionary and return to caller
+    img_plane =\
+    {
+    'n_hat'     :   n_hat,
+    'u_hat'     :   u_hat,
+    'v_hat'     :   v_hat,
+    'du'        :   du,
+    'dv'        :   dv,
+    'u'         :   u,
+    'v'         :   v,
+    'k_u'       :   k_u,
+    'k_v'       :   k_v,
+    'pixel_locs':   pixel_locs # 3 x N_pixel array specifying x,y,z location
+                               # of each pixel
+    }
+
+    return(img_plane)
+
+def subaperture(phs,platform,pulses=False,angle=False,keep_R_c=False):
+    '''
+    Separates a phase history and associated platform dictionary into multiple 
+    segments called 'subapertures'. Note: if the last subaperture does not fill
+    the given angle or pulses requirement it is discarded.
+
+    Parameters
+    ----------
+    phs : ndarray
+        Phase history of shape (npulses,nsamples)
+    platform : dict
+        Must include at a minimum 'npulses' and 'pos'. All other keys which have 
+        length the same as 'npulses' will be segmented together. All keys which do
+        not (with exception of 'R_c') will be copied to each subaperture.
+    pulses : int, optional
+        Number of pulses to use for each subaperture. Simply performs a slice
+        with the same number of pulses in each aperture. Default is false.
+    angle : floatf, optional
+        Minimum subtended angle (degrees) for each subaperture. This first 
+        calculates the change in angle between pulses then groups pulses with a 
+        cumulative sum between integer multiples of the input angle plus the average
+        change in angle.
+    keep_R_c: bool, optional
+        If `True`, each subaperture will be given the same 'R_c' as the original
+        platform dictionary. Otherwise it is calculated for each subaperture.
+        
+    Returns
+    ----------
+    phs_list : list of arrays
+        Phase history for each subaperture.
+    platform_list : list of dicts
+        Platform dictionary for each subaperture.
+    '''
+    
+    
+    npulses = platform['npulses']
+    pos     = platform['pos']
+
+    phs_list=[]
+    platform_list=[]
+    keys=platform.keys()
+    keys=[key for key in keys if isinstance(platform[key],(list,np.ndarray))]
+    keys=[key for key in keys if len(platform[key])==npulses]
+    keys.remove('pos')
+    keys.remove('k_y')
+    if pulses:
+        num_cuts=npulses // pulses
+        starts=pulses*np.arange(num_cuts)
+
+    elif angle:
+        # Determine the azimuth angles of the image pulses (degrees)
+        AntAz = np.unwrap(np.arctan2(pos[:,1],pos[:,0]))*180/np.pi
+        starts=[]
+        mark_start=True
+        for i,az in enumerate(AntAz):
+            if mark_start:
+                starts.append(i)
+                mark_start=False
+            if np.abs(az-AntAz[starts[-1]])>=angle:
+                mark_start=True #this will mark the next pulse
+
+    for i in range(len(starts)-1):
+        phs_list.append(phs[starts[i]:starts[i+1]])
+        platform_list.append(platform.copy())
+        pos_temp=pos[starts[i]:starts[i+1]]
+        npul=starts[i+1]-starts[i]
+        if np.mod(pulses,2)>0:
+            R_c_temp = pos_temp[npul//2]
+        else:
+            R_c_temp = np.mean(pos_temp[npul//2-1:npul//2+1],axis = 0)
+
+        L = np.linalg.norm(pos_temp[-1]-pos_temp[0])
+        k_y = np.linspace(-npul/2,npul/2,npul)*2*pi/L
+
+        platform_temp={
+            'pos' : pos_temp,
+            'R_c' : platform['R_c'] if keep_R_c else R_c_temp,
+            'npulses' : npul,
+            'k_y' : k_y
+        }
+        for key in keys:
+            platform_temp[key]=platform[key][starts[i]:starts[i+1]]
+        platform_list[-1].update(platform_temp)
+
+    return phs_list,platform_list
+
 def phs_inscribe(img):
 ##############################################################################
 #                                                                            #
@@ -831,230 +1094,9 @@ def FFBPmp(phs, platform, img_plane, N=3, derate = 1.05, taylor = 20, n = 32, be
                 
     return(img_FFBP)
 
+
     
-def img_plane_dict(platform, n_hat = np.array([0,0,1]), numPixels=False, \
-                   length=False, upsample=False, res_factor=False,
-                   aspect=False, checkme=False):
-    '''
-    This function defines the image plane parameters.
-    Parameters
-        ----------
-        platform : dict
-            The platform dictionary. Must include keys 'nsamples',
-            'npulses', 'freq', 'R_c', 'pos' and if keyword `res_factor` is
-            used 'delta_r'
-        n_hat: array, default=numpy.array([0,0,1])
-            Normal vector of the plane in which you wish to form the image
-        numPixels : int, array, tuple, or list. optional
-            Number of pixels of the output image in range(u) and cross range(v) 
-            directions from array center. int will result in a square.
-        length : int, array, tuple, or list. optional
-            Size (m) of scene to form image in range and cross range 
-            directions (determined by center of aperture) about scene center.
-        upsample : bool, optional
-            Autodetermines image size by rounding nsamples and npulses up 
-            to the nearest power of 2. Overridden by numPixels
-        res_factor : float, optional
-            A res_factor of 1 yields a (u,v) image plane whose pixels are 
-            sized at the theoretical resolution limit of the system derived
-            using delta_r which in turn was derived using the bandwidth.
-            Using this or aspect will override `length`
-        aspect : float, optional
-            Using this will force a given aspect (dv/du) on the output image
-            and will select the lower resolution (larger) between du and dv 
-            at the given aspect. This will override length
-        checkme : bool, optional
-            Prints theoretical maximum scene size and resolution limits.
-            Then prints chosen size and resolution limits. 
-    '''
-    c           =   299792458.0
-    nsamples = platform['nsamples']
-    npulses  = platform['npulses']
-    freq     = platform['freq']
-    
-    if freq.ndim ==1:
-        freq=freq[None,:]
-    deltaF=freq[0,2]-freq[0,1]
-    
-    #Import relevant platform parameters
-    R_c = platform['R_c']    
-    def isany(x):
-        isin=isinstance
-        return np.any([isin(x,list),isin(x,np.ndarray),isin(x,tuple)])
 
-    #Define image plane parameters
-    if isany(numPixels):
-        nu,nv=numPixels[0],numPixels[-1]
-    elif np.all([isinstance(numPixels,int),numPixels>0]):
-        nu,nv=numPixels,numPixels
-    elif np.all([not numPixels,upsample]):
-        nu= 2**int(np.log2(nsamples)+bool(np.mod(np.log2(nsamples),1)))
-        nv= 2**int(np.log2(npulses)+bool(np.mod(np.log2(npulses),1)))
-    else:
-        nu,nv= nsamples,npulses
-    
-    #Determine scene bounds
-    # Determine the azimuth angles of the image pulses (radians)
-    pos=platform['pos']
-    AntAz = np.unwrap(np.arctan2(pos[:,1],pos[:,0]))
-
-    # Determine the average azimuth angle step size (radians)
-    deltaAz = np.abs(np.mean(np.diff(AntAz)))
-
-    # Determine the total azimuth angle of the aperture (radians)
-    totalAz = np.max(AntAz) - np.min(AntAz)
-
-    # Determine the maximum scene size of the image (m)
-    maxWr = c/(2*deltaF)
-    maxWx = c/(2*deltaAz*np.mean(freq[0,:]))
-    
-    if isany(length):
-        ulength,vlength=length[0],length[-1]
-    elif np.all([isinstance(length,int),length>0]):
-        ulength,vlength=length,length
-    else:
-        ulength,vlength=1.22*maxWr,1.22*maxWx #1.22 for Airy disk limit, will alias
-    
-    #Build Pixel Grid
-    if res_factor: #included for compatibility
-        #Define resolution.  This should be less than the system resolution limits
-        res_factor=res_factor if res_factor else 1.0
-        du = platform['delta_r']*res_factor*nsamples/nu
-        aspect=aspect if aspect else 1.0
-        dv = aspect*du
-        #Define range and cross-range locations
-        u = np.arange(-nu/2, nu/2)*du
-        v = np.arange(-nv/2, nv/2)*dv
-        ulength,vlength=np.abs(u[-1]-u[0]),np.abs(v[-1]-v[0])
-    elif np.all([not res_factor, aspect]):
-        ubound = 0.5*ulength*np.array([-1, 1]);
-        vbound = 0.5*vlength*np.array([-1, 1]);
-        du=np.max([ulength/nu,vlength/(aspect*nv)])
-        dv=aspect*du
-        #Define range and cross-range locations
-        u = np.arange(-nu/2, nu/2)*du
-        v = np.arange(-nv/2, nv/2)*dv
-        ulength,vlength=np.abs(u[-1]-u[0]),np.abs(v[-1]-v[0])
-    else:
-        ubound = 0.5*ulength*np.array([-1, 1]);
-        vbound = 0.5*vlength*np.array([-1, 1]);
-        u = np.linspace(ubound[0],ubound[1],nu);
-        v = np.linspace(vbound[0],vbound[1],nv);  
-        du=u[2]-u[1]
-        dv=v[2]-v[1]
-
-    if checkme:
-        # Determine the resolution of the image (m)
-        dr = c/(2*deltaF*nsamples);
-        dx = c/(2*totalAz*np.mean(freq[0,:]));
-        
-        # Display maximum scene size and resolution
-        print('Maximum Scene Size:  %.4f m range, %.4f m cross-range'%(maxWr,maxWx))
-        print('Max Resolution:  %.4fm range, %.4f m cross-range'%(dr,dx))
-        print('Chosen Size: %.4f m range %.4f m cross-range' %(ulength,vlength))
-        print('Chosen Sample Spacing: %.4f m range, %.4f m cross-range'%(du,dv))
-
-    #Derive image plane spatial frequencies
-    k_u = 2*pi*np.linspace(-1.0/(2*du), 1.0/(2*du), nu)
-    k_v = 2*pi*np.linspace(-1.0/(2*dv), 1.0/(2*dv), nv)
-
-    #Derive representation of u_hat and v_hat in (x,y,z) space
-    v_hat = np.cross(n_hat, R_c)/norm(np.cross(n_hat, R_c))
-    u_hat = np.cross(v_hat, n_hat)/norm(np.cross(v_hat, n_hat))
-
-    #Represent u and v in (x,y,z)
-    [uu,vv] = np.meshgrid(u,v)
-    uu = uu.flatten(); vv = vv.flatten()
-
-    A = np.asmatrix(np.hstack((
-        np.array([u_hat]).T, np.array([v_hat]).T 
-            )))            
-    b = np.asmatrix(np.vstack((uu,vv)))
-    pixel_locs = np.asarray(A*b)
-
-    #Construct dictionary and return to caller
-    img_plane =\
-    {
-    'n_hat'     :   n_hat,
-    'u_hat'     :   u_hat,
-    'v_hat'     :   v_hat,
-    'du'        :   du,
-    'dv'        :   dv,
-    'u'         :   u,
-    'v'         :   v,
-    'k_u'       :   k_u,
-    'k_v'       :   k_v,
-    'pixel_locs':   pixel_locs # 3 x N_pixel array specifying x,y,z location
-                               # of each pixel
-    }
-
-    return(img_plane)
-    
-    def backprojection(self, phs, platform, img_plane, taylor = 20, upsample = 6, prnt = False):
-        ##############################################################################
-        #                                                                            #
-        #  This is the Backprojection algorithm.  The phase history data as well as  #
-        #  platform and image plane dictionaries are taken as inputs.  The (x,y,z)   #
-        #  locations of each pixel are required, as well as the size of the final    #
-        #  image (interpreted as [size(v) x size(u)]).                               #
-        #                                                                            #
-        ##############################################################################
-
-        #Retrieve relevent parameters
-        nsamples    =   platform['nsamples']
-        npulses     =   platform['npulses']
-        k_r         =   platform['k_r']
-        pos         =   platform['pos']
-        delta_r     =   platform['delta_r']
-        u           =   img_plane['u']
-        v           =   img_plane['v']
-        r           =   img_plane['pixel_locs']
-
-        #Derive parameters
-        nu = u.size
-        nv = v.size
-        k_c = k_r[nsamples//2]
-
-        #Create window
-        win_x = sig.taylor(nsamples,taylor)
-        win_x = np.tile(win_x, [npulses,1])
-
-        win_y = sig.taylor(npulses,taylor)
-        win_y = np.array([win_y]).T
-        win_y = np.tile(win_y, [1,nsamples])
-
-        win = win_x*win_y
-
-        #Filter phase history    
-        filt = np.abs(k_r)
-        phs_filt = phs*filt*win
-
-        #Zero pad phase history
-        N_fft = 2**(int(np.log2(nsamples*upsample))+1)
-        phs_pad = sig.pad(phs_filt, [npulses,N_fft])
-
-        #Filter phase history and perform FT w.r.t t
-        Q = sig.ft(phs_pad)    
-        dr = np.linspace(-nsamples*delta_r/2, nsamples*delta_r/2, N_fft)
-
-        #Perform backprojection for each pulse
-        img = np.zeros(nu*nv)+0j
-        for i in range(npulses):
-            if np.all([prnt,i%prnt==0]):
-                print("Calculating backprojection for pulse %i" %i)
-            r0 = np.array([pos[i]]).T
-            dr_i = norm(r0)-norm(r-r0, axis = 0)
-
-            Q_hat = np.interp(dr_i, dr, Q[i])     
-            img += Q_hat*np.exp(-1j*k_c*dr_i)
-
-        r0 = np.array([pos[npulses//2]]).T
-        dr_i = norm(r0)-norm(r-r0, axis = 0)
-        img = img*np.exp(1j*k_c*dr_i)   
-        img = np.reshape(img, [nv, nu])[::-1,:]
-        return(img)
-	
-	
 def autoFocus(img, win = 'auto', win_params = [100,0.5]):
 ##############################################################################
 #                                                                            #
