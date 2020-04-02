@@ -81,7 +81,7 @@ directory = './data/AFRL/pass1'
 start_az = 1
 
 #Import phase history and create platform dictionary
-[phs, platform] = phsRead.AFRL(directory, pol, start_az, n_az = 4)
+[phs, platform] = phsRead.AFRL(directory, start_az, pol, n_az = 4)
 
 #Create image plane dictionary
 img_plane = imgTools.img_plane_dict(platform, res_factor = 1.0, upsample = True, aspect = 1.0)

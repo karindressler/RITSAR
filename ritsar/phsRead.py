@@ -77,7 +77,10 @@ def AFRL(directory, start_az, pol=False, n_az=3):
         root=pathlib.Path(directory)
     items=list(root.glob('*.mat'))
     az=np.arange(start_az, start_az+n_az)
-    suffix=[str('%04d.mat'%a) for a in az]
+    if pol:
+        suffix=[str('%03d_%s.mat'%(a,pol)) for a in az]
+    else:
+        suffix=[str('%04d.mat'%a) for a in az]
     fnames=[item for item in items if any(s in item.name for s in suffix)]
 
     #Grab n_az phase histories
