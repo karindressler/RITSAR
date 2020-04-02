@@ -4,6 +4,7 @@ from numpy import pi
 from numpy.linalg import norm
 from scipy.stats import linregress
 from fnmatch import fnmatch
+import pathlib
 import os
 import scipy.io as sio 
 import xml.etree.ElementTree as ET
@@ -48,33 +49,36 @@ def _todict(matobj):
 #%%
 
 def AFRL(directory, start_az, pol=False, n_az=3):
-##############################################################################
-#                                                                            #
-#  This function reads in the AFRL *.mat files from the user supplied        #
-#  directory and exports both the phs and a Python dictionary compatible     #
-#  with ritsar.                                                              #
-#                                                                            #
-##############################################################################
+    '''
+    This function reads in the AFRL *.mat files from the user supplied 
+    directory and exports both the phs and a Python dictionary compatible
+    with ritsar.
+
+    Parameters
+    ----------
+    directory : str
+        Path to the directory in which your phase history files are housed. If using 'pol'
+        this instead houses the polarization files such as 'HH' and 'VV'.
+    start_az : int
+        AFRL ends its filenames in a number. I haven't quite figured out what the number 
+        means yet. But for the user it means which file in the folder you want to start with.
+    pol : str, optional
+        Sub folder which houses the actual data in polarized sets, does not need to be used 
+        if you input the direct path in `directory`. 
+    n_az : int, optional
+        The number of files to join together. I noticed this means something in older data
+        but I'm not sure if it has any meaning in newer sets. Default is 1.
+    '''
     
     #Get filenames
     if pol:
-        walker = os.walk(directory+'/'+pol)
-        w = walker.__next__()
-        prefix = '/'+pol+'/'+w[2][0][0:19]
-        az_str = []
-        fnames = []
-        az = np.arange(start_az, start_az+n_az)
-        [az_str.append(str('%03d_'%a))      for a in az]
-        [fnames.append(directory+prefix+a+pol+'.mat') for a in az_str]
-    else: # non-polarized data from wide angle SAR dataset
-        walker = os.walk(directory+'/')
-        w = walker.__next__()
-        prefix='/' + w[2][0][0:19]
-        az_str = []
-        fnames = []
-        az = np.arange(start_az, start_az+n_az)
-        [az_str.append(str('%04d'%a))      for a in az]
-        [fnames.append(directory+prefix+a+'.mat') for a in az_str]
+        root=pathlib.Path(directory+'/'+pol)
+    else:
+        root=pathlib.Path(directory)
+    items=list(root.glob('*.mat'))
+    az=np.arange(start_az, start_az+n_az)
+    suffix=[str('%04d.mat'%a) for a in az]
+    fnames=[item for item in items if any(s in item.name for s in suffix)]
 
     #Grab n_az phase histories
     phs = []; platform = []

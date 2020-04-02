@@ -65,8 +65,8 @@ plt.title('Backprojection')
 #%%
 
 #Use the same file to create and display subapertures
-directory ='./data/AFRL/Wide_Angle_SAR'
-start_az = 214
+#directory ='./data/AFRL/Wide_Angle_SAR'
+start_az = 215
 [phs, platform] = phsRead.AFRL(directory, start_az, n_az = 1)
 
 # Create subapertures with angle less than 360 to use polar format algorithm
@@ -81,8 +81,8 @@ for i in range(len(phs_list)):
     checkme=True if i==0 else False
     lil_img_plane=imgTools.img_plane_dict(plat_list[i],checkme=checkme,numPixels=160,\
                                           length=22,force_xy=True)
-    #img = imgTools.polar_format(phs_list[i], plat_list[i], lil_img_plane, taylor = 20,prnt=False)
-    img = imgTools.backprojection(phs_list[i], plat_list[i], lil_img_plane, taylor = 20,prnt=False)
+    img = imgTools.polar_format(phs_list[i], plat_list[i], lil_img_plane, taylor = 20,prnt=False)
+    #img = imgTools.backprojection(phs_list[i], plat_list[i], lil_img_plane, taylor = 20,prnt=False)
     
     images.append(img)
 
