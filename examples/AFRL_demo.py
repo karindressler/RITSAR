@@ -65,7 +65,7 @@ plt.title('Backprojection')
 #%%
 
 #Use the same file to create and display subapertures
-#directory ='./data/AFRL/Wide_Angle_SAR'
+directory ='./data/AFRL/Wide_Angle_SAR'
 start_az = 214
 [phs, platform] = phsRead.AFRL(directory, start_az, n_az = 1)
 

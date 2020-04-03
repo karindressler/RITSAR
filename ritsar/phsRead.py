@@ -330,7 +330,8 @@ def Sandia(directory):
         'R_c'       :   R_c,
         't'         :   t,
         'k_r'       :   k_r,
-        'n_hat'     :   n_hat
+        'n_hat'     :   n_hat,
+        'freq'      :   freq
     }
     
     return(phs, platform)
