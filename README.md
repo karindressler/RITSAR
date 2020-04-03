@@ -6,7 +6,7 @@ now has the ability to interpolate complex numbers directly instead of doing two
 
 I also added a "checkme" option to `imgTools.img_plane_dict` based on the code packaged with AFRL's Wide Angle SAR dataset which will calculate and print the theoretical max resolution and scene limits then print those which the image plane is currently set to.
 
-March 29th 2020: Found out I was doing something dumb with 'isinstance' when checking input types as it can check against a tuple of types instead of needing to check each type individually. Also decided to add a 'subaperture' function to imgTools which separates the phase history and platform into a list of corresponding smaller histories and platforms. 
+March 29th 2020: Found out I was doing something dumb with 'isinstance' when checking input types as it can check against a tuple of types instead of needing to check each type individually. Also decided to add a `subaperture` function to `imgTools.py` which separates the phase history and platform into a list of corresponding smaller histories and platforms. 
 
 ~-----------~
 

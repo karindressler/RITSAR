@@ -66,7 +66,7 @@ plt.title('Backprojection')
 
 #Use the same file to create and display subapertures
 #directory ='./data/AFRL/Wide_Angle_SAR'
-start_az = 215
+start_az = 214
 [phs, platform] = phsRead.AFRL(directory, start_az, n_az = 1)
 
 # Create subapertures with angle less than 360 to use polar format algorithm
