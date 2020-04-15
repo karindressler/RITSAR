@@ -29,7 +29,7 @@ from ritsar import imgTools
 platform = plat_dict()
 
 #Create image plane dictionary
-img_plane = imgTools.img_plane_dict(platform, aspect = 1)
+img_plane = imgTools.img_plane_dict(platform, numPixels=[256,256], aspect = 1)
 
 #Simulate phase history
 nsamples = platform['nsamples']

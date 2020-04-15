@@ -59,7 +59,7 @@ def plat_dict(aux = []):
     
     #Vector to scene center at synthetic aperture center
     if np.mod(npulses,2)>0:
-        R_c = pos[npulses/2]
+        R_c = pos[npulses//2]
     else:
         R_c = np.mean(
                 pos[npulses//2-1:npulses//2+1],
