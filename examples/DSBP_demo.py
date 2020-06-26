@@ -23,6 +23,7 @@ from ritsar import phsTools
 from ritsar import phsRead
 from ritsar import imgTools
 
+#%%
 #simulated DSBP demo
 ##############################################################################
 #Create platform dictionary
@@ -67,7 +68,9 @@ imgTools.imshow(img_DSBP, dB_scale = [-25,0], extent = extent)
 plt.xlabel('meters'); plt.ylabel('meters')
 plt.tight_layout()
 
-'''
+
+#%%
+
 #AFRL DSBP demo
 ###############################################################################
 #Define top level directory containing *.mat file
@@ -77,7 +80,7 @@ directory = './data/AFRL/pass1'
 start_az = 1
 
 #Import phase history and create platform dictionary
-[phs, platform] = phsRead.AFRL(directory, pol, start_az, n_az = 3)
+[phs, platform] = phsRead.AFRL(directory, start_az, pol, n_az = 3)
 
 #Create image plane dictionary
 img_plane = imgTools.img_plane_dict(platform, res_factor = 1.4, upsample = True, aspect = 1.0)
@@ -104,8 +107,8 @@ plt.title('Digital Spotlight Backprojection')
 imgTools.imshow(img_DSBP, dB_scale = [-25,0], extent = extent)
 plt.xlabel('meters'); plt.ylabel('meters')
 plt.tight_layout()
-'''
-'''
+
+#%%
 #DIRSIG DSBP demo
 ###############################################################################
 #Define directory containing *.au2 and *.phs files
@@ -140,4 +143,4 @@ plt.subplot(1,2,2)
 plt.title('Digital Spotlight Backprojection')
 imgTools.imshow(img_DSBP, dB_scale = [-25,0], extent = extent)
 plt.xlabel('meters'); plt.ylabel('meters')
-plt.tight_layout()'''
+plt.tight_layout()

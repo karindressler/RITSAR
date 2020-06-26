@@ -14,10 +14,11 @@
 import numpy as np
 from numpy import pi, cos, arccos
 from numpy.linalg import norm
+from scipy.constants import speed_of_light 
 
-def plat_dict(aux = []):
+def plat_dict(aux = {}):
     #Define universal constants
-    c = 3.0e8
+    c = speed_of_light
     
     #Define platform parameters
     f_0 = 10.0e9   #center frequency
