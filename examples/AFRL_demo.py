@@ -6,6 +6,7 @@
 #                                                                            #
 ##############################################################################
 
+#%%
 #Add include directories to default path list
 from sys import path
 path.append('../')
@@ -13,7 +14,7 @@ path.append('../')
 #Include standard library dependencies
 import matplotlib.pylab as plt
 
-#Include SARIT toolset
+#Include RITSAR toolset
 from ritsar import phsRead
 from ritsar import imgTools
 
@@ -91,3 +92,6 @@ for image in images:
     imgTools.imshow(image, dB_scale = [-15,0])
     plt.title('')
 
+
+
+# %%

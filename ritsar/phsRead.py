@@ -183,14 +183,15 @@ def AFRL(directory, start_az, pol=False, n_az=3):
     return(phs, platform)
     
 def Sandia(directory):
-##############################################################################
-#                                                                            #
-#  This function reads in the Sandia *.phs and *.au2 files from the user     #
-#  supplied directoryand exports both the phs and a Python dictionary        #
-#  compatible with ritsar.                                                   #
-#                                                                            #
-##############################################################################
-    
+    '''
+    ##############################################################################
+    #                                                                            #
+    #  This function reads in the Sandia *.phs and *.au2 files from the user     #
+    #  supplied directoryand exports both the phs and a Python dictionary        #
+    #  compatible with ritsar.                                                   #
+    #                                                                            #
+    ##############################################################################
+    '''
     #get filename containing auxilliary data
     for file in os.listdir(directory):
             if fnmatch(file, '*.au2'):
@@ -337,13 +338,7 @@ def Sandia(directory):
     return(phs, platform)
 
 
-##############################################################################
-#                                                                            #
-#  This function reads in the DIRSIG xml data as well as the envi header     #
-#  file from the user supplied directory. The phs and a Python dictionary    #
-#  compatible with ritsar are returned to the function caller.               #
-#                                                                            #
-##############################################################################
+
 def get(root, entry):
     for entry in root.iter(entry):
         out = entry.text
@@ -358,6 +353,15 @@ def getWildcard(directory, char):
     return(fname)
 
 def DIRSIG(directory):
+    '''
+    ##############################################################################
+    #                                                                            #
+    #  This function reads in the DIRSIG xml data as well as the envi header     #
+    #  file from the user supplied directory. The phs and a Python dictionary    #
+    #  compatible with ritsar are returned to the function caller.               #
+    #                                                                            #
+    ##############################################################################
+    '''
     from spectral.io import envi
     
     #get phase history
