@@ -85,6 +85,8 @@ target/
 
 # VS Code
 .vscode
+.vscode/
+.vscode/*
 
 # IPython
 profile_default/
