@@ -1,7 +1,5 @@
 #Include dependencies
 import numpy as np
-from numpy import pi
-from numpy.linalg import norm
 from scipy.stats import linregress
 from fnmatch import fnmatch
 import pathlib
@@ -101,7 +99,7 @@ def AFRL(directory, start_az, pol=False, n_az=3):
         npulses     = int(phs_tmp.shape[0])
         freq        = np.float64(data['freq'])
         pos         = np.vstack((data['x'], data['y'], data['z'])).T
-        k_r         = 4*pi*freq/c
+        k_r         = 4*np.pi*freq/c
         B_IF        = freq.max()-freq.min()
         delta_r     = c/(2*B_IF)
         delta_t     = 1.0/B_IF
@@ -175,10 +173,10 @@ def AFRL(directory, start_az, pol=False, n_az=3):
     platform.update(platform_update)
     
     #Synthetic aperture length
-    L = norm(pos[-1]-pos[0])
+    L = np.linalg.norm(pos[-1]-pos[0])
 
     #Add k_y
-    platform['k_y'] = np.linspace(-npulses/2,npulses/2,npulses)*2*pi/L
+    platform['k_y'] = np.linspace(-npulses/2,npulses/2,npulses)*2*np.pi/L
 
     return(phs, platform)
     
@@ -304,12 +302,12 @@ def Sandia(directory):
     n_hat   = record[3]['fpn']
     delta_t = record[4]['fs']
     t       = np.linspace(-nsamples/2, nsamples/2, nsamples)*1.0/delta_t
-    chirprate = record[4]['fdot']*1.0/(2*pi)
-    f_0     = record[4]['f0']*1.0/(2*pi) + chirprate*nsamples/(2*delta_t)
+    chirprate = record[4]['fdot']*1.0/(2*np.pi)
+    f_0     = record[4]['f0']*1.0/(2*np.pi) + chirprate*nsamples/(2*delta_t)
     B_IF    = (t.max()-t.min())*chirprate
     delta_r = c/(2*B_IF)
     freq = f_0+chirprate*t
-    omega = 2*pi*freq
+    omega = 2*np.pi*freq
     k_r = 2*omega/c
     
     if np.mod(npulses,2)>0:
@@ -407,14 +405,14 @@ def DIRSIG(directory):
     delta_t     = float(get(root, 'delta'))
     t           = np.linspace(-nsamples/2, nsamples/2, nsamples)*delta_t
     prf         = float(get(root, 'clockrate'))
-    chirprate   = float(get(root, 'chirprate'))/pi
+    chirprate   = float(get(root, 'chirprate'))/np.pi
     T_p         = float(get(root, 'pulseduration'))
     B           = T_p*chirprate
     B_IF        = (t.max() - t.min())*chirprate
     delta_r     = c/(2*B_IF)
     f_0         = float(get(root, 'center'))*1e9
     freq        = f_0+chirprate*t
-    omega       = 2*pi*freq
+    omega       = 2*np.pi*freq
     k_r         = 2*omega/c
     T0          = float(get(root, 'min'))
     T1          = float(get(root, 'max'))
@@ -425,8 +423,8 @@ def DIRSIG(directory):
     y = np.array([np.interp(ti, t_dirs, pos_dirs[:,1])]).T
     z = np.array([np.interp(ti, t_dirs, pos_dirs[:,2])]).T
     pos = np.hstack((x,y,z))
-    L = norm(pos[-1]-pos[0])
-    k_y = np.linspace(-npulses/2,npulses/2,npulses)*2*pi/L
+    L = np.linalg.norm(pos[-1]-pos[0])
+    k_y = np.linspace(-npulses/2,npulses/2,npulses)*2*np.pi/L
     
     #Vector to scene center at synthetic aperture center
     if np.mod(npulses,2)>0:
@@ -445,9 +443,9 @@ def DIRSIG(directory):
     #Mix signal
     signal = np.zeros(phs.shape)+0j
     for i in range(0,npulses,1):
-        r_0 = norm(pos[i])
+        r_0 = np.linalg.norm(pos[i])
         tau_c = 2*r_0/c
-        ref = np.exp(-1j*(2*pi*f_0*(T-tau_c)+pi*chirprate*(T-tau_c)**2))
+        ref = np.exp(-1j*(2*np.pi*f_0*(T-tau_c)+np.pi*chirprate*(T-tau_c)**2))
         signal[i,:] = ref*phs[i,:]
     
     platform = \

@@ -33,12 +33,13 @@ img_plane = imgTools.img_plane_dict(platform, res_factor = 1.4, upsample = True,
 
 #Apply algorithm of choice to phase history data
 img_bp = imgTools.backprojection(phs, platform, img_plane, taylor = 20, upsample = 6,prnt=50)
-#img_pf = imgTools.polar_format(phs, platform, img_plane, taylor = 20)
+img_pf = imgTools.polar_format(phs, platform, img_plane, taylor = 20)
 
 #Output image
 imgTools.imshow(img_bp, dB_scale = [-30,0])
 plt.title('Backprojection')
-
+imgTools.imshow(img_pf, dB_scale = [-30,0])
+plt.title('Polar Formatting')
 
 
 #%%
@@ -87,6 +88,7 @@ for i in range(len(phs_list)):
     
     images.append(img)
 
+#TODO: make this plot an animation, move this demo to jupyter notebook
 for image in images:
     plt.figure()
     imgTools.imshow(image, dB_scale = [-15,0])

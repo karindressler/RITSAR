@@ -1,7 +1,5 @@
 #Include depedencies
 import numpy as np
-from numpy import dot, pi, exp, sqrt, inf
-from numpy.linalg import norm
 import matplotlib.pylab as plt
 from scipy.stats import linregress
 from matplotlib import cm
@@ -148,16 +146,16 @@ def img_plane_dict(platform, n_hat = np.array([0,0,1]), numPixels=False, \
         print('Chosen Sample Spacing: %.4f m range, %.4f m cross-range'%(du,dv))
 
     #Derive image plane spatial frequencies
-    k_u = 2*pi*np.linspace(-1.0/(2*du), 1.0/(2*du), nu)
-    k_v = 2*pi*np.linspace(-1.0/(2*dv), 1.0/(2*dv), nv)
+    k_u = 2*np.pi*np.linspace(-1.0/(2*du), 1.0/(2*du), nu)
+    k_v = 2*np.pi*np.linspace(-1.0/(2*dv), 1.0/(2*dv), nv)
     
     if force_xy:
         u_hat=np.array([1,0,0])
         v_hat=np.array([0,1,0])
     else:
         #Derive representation of u_hat and v_hat in (x,y,z) space
-        v_hat = np.cross(n_hat, R_c)/norm(np.cross(n_hat, R_c))
-        u_hat = np.cross(v_hat, n_hat)/norm(np.cross(v_hat, n_hat))
+        v_hat = np.cross(n_hat, R_c)/np.linalg.norm(np.cross(n_hat, R_c))
+        u_hat = np.cross(v_hat, n_hat)/np.linalg.norm(np.cross(v_hat, n_hat))
 
     #Represent u and v in (x,y,z)
     [uu,vv] = np.meshgrid(u,v)
@@ -259,7 +257,7 @@ def subaperture(phs,platform,pulses=False,angle=False,keep_R_c=False):
             R_c_temp = np.mean(pos_temp[npul//2-1:npul//2+1],axis = 0)
 
         L = np.linalg.norm(pos_temp[-1]-pos_temp[0])
-        k_y = np.linspace(-npul/2,npul/2,npul)*2*pi/L
+        k_y = np.linspace(-npul/2,npul/2,npul)*2*np.pi/L
 
         platform_temp={
             'pos' : pos_temp,
@@ -372,21 +370,21 @@ def polar_format(phs, platform, img_plane, taylor = 20, prnt=100):
     k_vi        =   img_plane['k_v']
 
     #Compute k_xi offset
-    psi = pi/2-np.arccos(np.dot(R_c,n_hat)/norm(R_c))
-    k_ui = k_ui + 4*pi*f_0/c*np.cos(psi)
+    psi = np.pi/2-np.arccos(np.dot(R_c,n_hat)/np.linalg.norm(R_c))
+    k_ui = k_ui + 4*np.pi*f_0/c*np.cos(psi)
 
     #Compute number of samples in scene
     nu = k_ui.size
     nv = k_vi.size
 
     #Compute x and y unit vectors. x defined to lie along R_c.
-    #z = cross(vec[0], vec[-1]); z =z/norm(z)
-    u_hat = (R_c-dot(R_c,n_hat)*n_hat)/\
-            norm((R_c-dot(R_c,n_hat)*n_hat))
+    #z = np.cross(vec[0], vec[-1]); z =z/np.linalg.norm(z)
+    u_hat = (R_c-np.dot(R_c,n_hat)*n_hat)/\
+            np.linalg.norm((R_c-np.dot(R_c,n_hat)*n_hat))
     v_hat = np.cross(u_hat,n_hat)
 
     #Compute r_hat, the diretion of k_r, for each pulse
-    r_norm = norm(pos,axis=1)
+    r_norm = np.linalg.norm(pos,axis=1)
     r_norm = np.array([r_norm]).T
     r_norm = np.tile(r_norm,(1,3))
 
@@ -469,7 +467,7 @@ def omega_k(phs, platform, taylor = 20, upsample = 6):
     #Retrieve relevent parameters
     K_r     =   platform['k_r']
     K_y     =   platform['k_y']
-    R_s     =   norm(platform['pos'], axis = -1).min()
+    R_s     =   np.linalg.norm(platform['pos'], axis = -1).min()
     nsamples=   platform['nsamples']
     npulses =   platform['npulses']
     
@@ -480,18 +478,18 @@ def omega_k(phs, platform, taylor = 20, upsample = 6):
     [K_r, K_y] = np.meshgrid(K_r, K_y)
     
     #Mathed filter for compensating range curvature
-    phase_mf = -R_s*K_r + R_s*sqrt(K_r**2-K_y**2)
+    phase_mf = -R_s*K_r + R_s*np.sqrt(K_r**2-K_y**2)
     phase_mf = np.nan_to_num(phase_mf)
-    S_Kx_Kr_mf = S_Kx_Kr*exp(1j*phase_mf)
+    S_Kx_Kr_mf = S_Kx_Kr*np.exp(1j*phase_mf)
     
     #Stolt interpolation
-    K_xi_max = np.nan_to_num(sqrt(K_r**2-K_y**2)).max()
-    K_xi_min = np.nan_to_num(sqrt(K_r**2-K_y**2)).min()
+    K_xi_max = np.nan_to_num(np.sqrt(K_r**2-K_y**2)).max()
+    K_xi_min = np.nan_to_num(np.sqrt(K_r**2-K_y**2)).min()
     K_xi = np.linspace(K_xi_min, K_xi_max, nsamples)
     
     S = np.zeros([npulses,nsamples])+0j
     for i in range(npulses):
-        K_x = np.nan_to_num(sqrt(K_r[i,:]**2-K_y[i,:]**2))
+        K_x = np.nan_to_num(np.sqrt(K_r[i,:]**2-K_y[i,:]**2))
         
         f_real = interp1d(K_x, S_Kx_Kr_mf[i,:].real, kind = 'linear', bounds_error = 0, fill_value = 0)
         f_imag = interp1d(K_x, S_Kx_Kr_mf[i,:].imag, kind = 'linear', bounds_error = 0, fill_value = 0)
@@ -581,13 +579,13 @@ def backprojection( phs, platform, img_plane, taylor = 20, upsample = 6, prnt = 
             if np.all([prnt,i%prnt==0]):
                 print("Calculating backprojection for pulse %i" %i)
         r0 = np.array([pos[i]]).T
-        dr_i = norm(r0)-norm(r-r0, axis = 0)
+        dr_i = np.linalg.norm(r0)-np.linalg.norm(r-r0, axis = 0)
 
         Q_hat = np.interp(dr_i, dr, Q[i])     
         img += Q_hat*np.exp(-1j*k_c*dr_i)
 
     r0 = np.array([pos[npulses//2]]).T
-    dr_i = norm(r0)-norm(r-r0, axis = 0)
+    dr_i = np.linalg.norm(r0)-np.linalg.norm(r-r0, axis = 0)
     img = img*np.exp(1j*k_c*dr_i)   
     img = np.reshape(img, [nv, nu])[::-1,:]
     return(img)
@@ -634,7 +632,7 @@ def DSBP(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor
     
     #calculate decimation factor along range
     deltaF = abs(np.mean(np.diff(freq)))
-    deltaFspot = c/(2*derate*norm([Vx, Vy]))
+    deltaFspot = c/(2*derate*np.linalg.norm([Vx, Vy]))
     N = int(np.floor(deltaFspot/deltaF))
     
     #force the decimation factor if specified by the user
@@ -653,7 +651,7 @@ def DSBP(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor
     platformDS['freq']     = freq
     deltaF = freq[freq.size//2]-freq[freq.size//2-1] #Assume sample spacing can be determined by difference between last two values (first two are distorted by decimation filter)
     freq   = freq[freq.size//2]+np.arange(-freq.size//2,freq.size//2)*deltaF
-    platformDS['k_r'] = 4*pi*freq/c
+    platformDS['k_r'] = 4*np.pi*freq/c
 
     #interpolate phs and pos using uniform azimuth spacing
     sph = sig.cart2sph(pos)
@@ -674,7 +672,7 @@ def DSBP(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor
 
     #decimate slowtime positions and phase history
     fmax = freq[-1]
-    PPRspot = derate*2*norm([Vx, Vy])*fmax*np.cos(sph[:,1].min())/c
+    PPRspot = derate*2*np.linalg.norm([Vx, Vy])*fmax*np.cos(sph[:,1].min())/c
     PPRdata = 1.0/RPPdata
     M = int(np.floor(PPRdata/PPRspot))
     
@@ -698,7 +696,7 @@ def DSBP(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor
     else:
         #Find cordinates of center pixel
         p = img_plane['pixel_locs'].T
-        center_index = np.argsort(norm(p-center, axis = -1))[0]
+        center_index = np.argsort(np.linalg.norm(p-center, axis = -1))[0]
         center_index = np.array(np.unravel_index(center_index, [v.size, u.size]))
 		
         #Update u and v
@@ -761,7 +759,7 @@ def DS(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor =
     
     #calculate decimation factor along range
     deltaF = abs(np.mean(np.diff(freq)))
-    deltaFspot = c/(2*derate*norm([Vx, Vy]))
+    deltaFspot = c/(2*derate*np.linalg.norm([Vx, Vy]))
     N = int(np.floor(deltaFspot/deltaF))
     
     #force the decimation factor if specified by the user
@@ -780,7 +778,7 @@ def DS(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor =
     platformDS['freq']     = freq
     deltaF = freq[freq.size//2]-freq[freq.size//2-1] #Assume sample spacing can be determined by difference between last two values (first two are distorted by decimation filter)
     freq   = freq[freq.size//2]+np.arange(-freq.size//2,freq.size//2)*deltaF
-    platformDS['k_r'] = 4*pi*freq/c
+    platformDS['k_r'] = 4*np.pi*freq/c
 
     #interpolate phs and pos using uniform azimuth spacing
     sph = sig.cart2sph(pos)
@@ -801,7 +799,7 @@ def DS(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor =
 
     #decimate slowtime positions and phase history
     fmax = freq[-1]
-    PPRspot = derate*2*norm([Vx, Vy])*fmax*np.cos(sph[:,1].min())/c
+    PPRspot = derate*2*np.linalg.norm([Vx, Vy])*fmax*np.cos(sph[:,1].min())/c
     PPRdata = 1.0/RPPdata
     M = int(np.floor(PPRdata/PPRspot))
     
@@ -825,7 +823,7 @@ def DS(phs, platform, img_plane, center=None, size=None, derate = 1.05, taylor =
     else:
         #Find cordinates of center pixel
         p = img_plane['pixel_locs'].T
-        center_index = np.argsort(norm(p-center, axis = -1))[0]
+        center_index = np.argsort(np.linalg.norm(p-center, axis = -1))[0]
         center_index = np.array(np.unravel_index(center_index, [v.size, u.size]))
 		
         #Update u and v
@@ -1344,7 +1342,7 @@ def imshow(img, dB_scale = [0,0], extent = None):
 
     #Convert to dB
     img = 10*np.log10(np.abs(img)/np.abs(img).max())
-    img[img == -inf] = dB_scale[0]
+    img[img == -np.inf] = dB_scale[0]
 
     #Determine if the image is RGB
     if len(img.shape) != 3:
