@@ -1,3 +1,4 @@
+'''
 ##############################################################################
 #                                                                            #
 #  This is a demonstration of the ritsar toolset using AFRL Gotcha data.     #
@@ -5,6 +6,7 @@
 #  the lines of code below.                                                  #
 #                                                                            #
 ##############################################################################
+'''
 
 #%%
 #Add include directories to default path list
