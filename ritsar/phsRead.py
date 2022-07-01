@@ -21,28 +21,28 @@ def mergenloadmat(filename):
     data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
     return _check_keys(data)
 
-def _check_keys(dict):
+def _check_keys(dictdata):
     '''
     checks if entries in dictionary are mat-objects. If yes
     todict is called to change them to nested dictionaries
     '''
-    for key in dict:
-        if isinstance(dict[key], sio.matlab.mio5_params.mat_struct):
-            dict[key] = _todict(dict[key])
-    return dict        
+    for key in dictdata:
+        if isinstance(dictdata[key], sio.matlab.mio5_params.mat_struct):
+            dictdata[key] = _todict(dictdata[key])
+    return dictdata        
 
 def _todict(matobj):
     '''
     A recursive function which constructs from matobjects nested dictionaries
     '''
-    dict = {}
+    dictdata = {}
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, sio.matlab.mio5_params.mat_struct):
-            dict[strg] = _todict(elem)
+            dictdata[strg] = _todict(elem)
         else:
-            dict[strg] = elem
-    return dict
+            dictdata[strg] = elem
+    return dictdata
 
 #%%
 
@@ -83,7 +83,7 @@ def AFRL(directory, start_az, pol=False, n_az=3):
 
     #Grab n_az phase histories
     phs = []; platform = []
-    for fname in fnames:
+    for fname in sorted(fnames):
         #Convert MATLAB structure to Python dictionary
         data=mergenloadmat(fname)['data']
 

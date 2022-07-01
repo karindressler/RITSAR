@@ -1,11 +1,12 @@
 #Include depedencies
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 from scipy.stats import linregress
 from matplotlib import cm
 from . import signal as sig
 from . import phsTools
 from scipy.interpolate import interp1d
+from scipy.constants import c
 import multiprocessing as mp
 
     
@@ -58,7 +59,7 @@ def img_plane_dict(platform, n_hat = np.array([0,0,1]), numPixels=False, \
         a 3x(nu,nv) array of xyz coordinates to use for sampling locations.    
         
     '''
-    c           =   299792458.0
+    
     nsamples = platform['nsamples']
     npulses  = platform['npulses']
     freq     = platform['freq']
@@ -395,7 +396,6 @@ def polar_format(phs, platform, img_plane, taylor = 20, prnt=100):
     u_hat = np.asmatrix([u_hat])
     v_hat = np.asmatrix([v_hat])
 
-    k_matrix = np.tile(k,(npulses,1))
     k_matrix = np.asmatrix(k)
 
     #Compute kx and ky meshgrid

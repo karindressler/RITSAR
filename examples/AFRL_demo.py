@@ -14,7 +14,7 @@ from sys import path
 path.append('../')
 
 #Include standard library dependencies
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 #Include RITSAR toolset
 from ritsar import phsRead

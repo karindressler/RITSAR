@@ -12,8 +12,6 @@
 
 #Include dependencies
 import numpy as np
-from numpy import pi, cos, arccos
-from numpy.linalg import norm
 from scipy.constants import speed_of_light 
 
 def plat_dict(aux = {}):
@@ -30,20 +28,20 @@ def plat_dict(aux = {}):
     delta_t = 1.0/AD_sampling
     nsamples = 2048
     npulses = 1950
-    squint = pi/2
+    squint = np.pi/2
     graze = 0.52359877559829893
     
     #Define platform position
     
     #x
     R0_apCenter = 10000.0
-    Xc = R0_apCenter*cos(graze)
+    Xc = R0_apCenter*np.cos(graze)
     
     #y
     prf = 1000.0
     v_p = 100.0
     dy = v_p/prf
-    Y_c = Xc*np.tan(pi/2-squint)
+    Y_c = Xc*np.tan(np.pi/2-squint)
     y = np.linspace(-npulses/2, npulses/2, npulses)*dy+Y_c
     
     #z    
@@ -56,7 +54,7 @@ def plat_dict(aux = {}):
     pos[:,2] = h
     
     #Synthetic aperture length
-    L = norm(pos[-1]-pos[0])
+    L = np.linalg.norm(pos[-1]-pos[0])
     
     #Vector to scene center at synthetic aperture center
     if np.mod(npulses,2)>0:
@@ -67,28 +65,28 @@ def plat_dict(aux = {}):
                 axis = 0)
                     
     #Coherent integration angle
-    p1_hat = pos[0]/norm(pos[0]); p2_hat = pos[-1]/norm(pos[-1])
-    Delta_theta = arccos(np.dot(p1_hat, p2_hat))
+    p1_hat = pos[0]/np.linalg.norm(pos[0]); p2_hat = pos[-1]/np.linalg.norm(pos[-1])
+    Delta_theta = np.arccos(np.dot(p1_hat, p2_hat))
     
     #Look angle w.r.t. velocity vector for each pulse (minus pi/2)
     theta = np.zeros(npulses)
     R_vel = pos[-1]-pos[0]
-    R_vel_norm = norm(R_vel)
+    R_vel_norm = np.linalg.norm(R_vel)
     for i in range(npulses):
         num = np.dot(pos[i], R_vel)
-        den = norm(pos[i])*R_vel_norm
-        theta[i] = arccos(num/den)-pi/2
+        den = np.linalg.norm(pos[i])*R_vel_norm
+        theta[i] = np.arccos(num/den)-np.pi/2
         
     #Obtain frequency locations of range samples
-    #Assuming demodulated lienar FM signal
+    #Assuming demodulated linear FM signal
     t = np.linspace(
         -nsamples/2, nsamples/2, nsamples)*delta_t #demodulated fast time
     B_IF = (t.max()-t.min())*chirprate
     delta_r = c/(2*B_IF)
     freq = f_0+chirprate*t
-    omega = 2*pi*freq
+    omega = 2*np.pi*freq
     k_r = 2*omega/c
-    k_y = np.linspace(-npulses/2,npulses/2,npulses)*2*pi/L
+    k_y = np.linspace(-npulses/2,npulses/2,npulses)*2*np.pi/L
     
     
     #Construct dictionary and return to caller
