@@ -1,8 +1,16 @@
-#Extra files and outputs
-Draft/
-*.jpg
-*.png
+.idea
 
+# (log) output folder
+output
+
+# code coverage / tests
+coverage-reports/
+
+log/
+*~
+reports/
+.scannerwork/
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -14,6 +22,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+tmp/
 build/
 develop-eggs/
 dist/
@@ -26,7 +35,6 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -56,6 +64,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -63,6 +72,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+*.log.*
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -78,28 +88,20 @@ instance/
 docs/_build/
 
 # PyBuilder
+.pybuilder/
 target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
-# VS Code
-.vscode
-.vscode/
-.vscode/*
 
 # IPython
 profile_default/
 ipython_config.py
 
 # pyenv
-<<<<<<< HEAD
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
 # .python-version
-=======
-.python-version
->>>>>>> 97ebea8580fae8f337ef3f7e321627903488b7bf
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -120,22 +122,27 @@ celerybeat.pid
 
 # Environments
 .env
+.env*
 .venv
+.venv*
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.pip
 
-# Spyder project settings
+# IDE project settings
 .spyderproject
 .spyproject
+.vscode
 
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# documentation
 /site
+docs/README.htm
 
 # mypy
 .mypy_cache/
@@ -144,9 +151,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-<<<<<<< HEAD
 
 # pytype static type analyzer
 .pytype/
-=======
->>>>>>> 97ebea8580fae8f337ef3f7e321627903488b7bf
+
+# Cython debug symbols
+cython_debug/

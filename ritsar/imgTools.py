@@ -1186,22 +1186,22 @@ def autoFocus(img, win = 'auto', win_params = [100,0.5]):
         #Store phase
         af_ph += phi    
        
-    fig = plt.figure(figsize = (12,10))
-    ax1 = fig.add_subplot(2,2,1)
-    ax1.set_title('original')
-    ax1.imshow(10*np.log10(np.abs(img)/np.abs(img).max()), cmap = cm.Greys_r)
-    ax2 = fig.add_subplot(2,2,2)
-    ax2.set_title('autofocused')
-    ax2.imshow(10*np.log10(np.abs(img_af)/np.abs(img_af).max()), cmap = cm.Greys_r)
-    ax3 = fig.add_subplot(2,2,3)
-    ax3.set_title('rms phase error vs. iteration')
-    plt.ylabel('Phase (radians)')
-    ax3.plot(rms)
-    ax4 = fig.add_subplot(2,2,4)
-    ax4.set_title('phase error')
-    plt.ylabel('Phase (radians)')
-    ax4.plot(af_ph)
-    plt.tight_layout()
+    # fig = plt.figure(figsize = (12,10))
+    # ax1 = fig.add_subplot(2,2,1)
+    # ax1.set_title('original')
+    # ax1.imshow(10*np.log10(np.abs(img)/np.abs(img).max()), cmap = cm.Greys_r)
+    # ax2 = fig.add_subplot(2,2,2)
+    # ax2.set_title('autofocused')
+    # ax2.imshow(10*np.log10(np.abs(img_af)/np.abs(img_af).max()), cmap = cm.Greys_r)
+    # ax3 = fig.add_subplot(2,2,3)
+    # ax3.set_title('rms phase error vs. iteration')
+    # plt.ylabel('Phase (radians)')
+    # ax3.plot(rms)
+    # ax4 = fig.add_subplot(2,2,4)
+    # ax4.set_title('phase error')
+    # plt.ylabel('Phase (radians)')
+    # ax4.plot(af_ph)
+    # plt.tight_layout()
     
 
     print('number of iterations: %i'%(iii+1))
@@ -1325,6 +1325,8 @@ def autoFocus2(img, win = 'auto', win_params = [100,0.5]):
     plt.ylabel('Phase (radians)')
     ax4.plot(af_ph)
     plt.tight_layout()
+
+    plt.show()
     
 
     print('number of iterations: %i'%(iii+1))
